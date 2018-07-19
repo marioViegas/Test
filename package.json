@@ -8,7 +8,10 @@
   },
   "dependencies": {
     "body-parser": "^1.18.3",
-    "express": "^4.16.3"
+    "ejs": "^2.6.1",
+    "express": "^4.16.3",
+    "express-validator": "^5.2.0",
+    "mongojs": "^2.6.0"
   },
   "author": "mario.viegas",
   "license": "ISC"
