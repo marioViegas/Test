@@ -2,9 +2,10 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var path = require('path');
 var expressValidator = require('express-validator');
-var mongojs = require('mongojs')
-var db = mongojs('customerapp', ['users'])
+var mongojs = require('mongojs');
+var db = mongojs('customerapp', ['users', 'user']);
 var ObjectId = mongojs.ObjectId;
+const Instagram = require('node-instagram').default;
 var app = express();
 
 /*var logger = function(req, res, next){
@@ -13,6 +14,12 @@ var app = express();
 }
 
 app.use(logger);*/
+
+// Create a new instance.
+const instagram = new Instagram({
+  clientId: '13837ff160e0401cbb4642750dca8166',
+  clientSecret: 'fd266d2a52164d06b60fdc2d99621725',
+});
 
 //View Engine
 app.set('view engine', 'ejs');
@@ -33,7 +40,7 @@ app.use(function(req, res, next){
 	next();
 });
 
-app.get('/', function(req, res){
+app.get('/a', function(req, res){
 	// find everything
 	db.users.find(function (err, docs) {
 		// docs is an array of all the documents in mycollection
@@ -42,6 +49,35 @@ app.get('/', function(req, res){
 			users: docs
 		});
 	})
+});
+
+app.get('/', function(req, res){
+	res.render('login');
+});
+
+const redirectUri = 'http://localhost:3000/auth/instagram/callback';
+
+app.get('/login', function(req, res){
+	res.redirect(instagram.getAuthorizationUrl(redirectUri, { scope: ['basic'] }));
+});
+
+// Handle auth code and get access_token for user
+app.get('/auth/instagram/callback', async (req, res) => {
+  try {
+    const data = await instagram.authorizeUser(req.query.code, redirectUri);
+    // access_token in data.access_token
+		console.log(data.user);
+    res.json(data);
+		db.user.insert(data.user, function(err, response){
+			if(err){
+				console.log(err);
+			}
+			console.log(response);
+			//res.redirect('/');
+		});
+  } catch (err) {
+    res.json(err);
+  }
 });
 
 app.post('/users/add', function(req, res){
@@ -55,6 +91,7 @@ app.post('/users/add', function(req, res){
 	if(errors){
 		db.users.find(function (err, docs) {
 			// docs is an array of all the documents in mycollection
+			console.log(docs);
 			res.render('index',{
 				title: 'Costumers',
 				users: docs,
@@ -62,6 +99,7 @@ app.post('/users/add', function(req, res){
 			});
 		})
 	} else {
+		console.log(req);
 		var newUser = {
 			first_name: req.body.first_name,
 			last_name: req.body.last_name,
@@ -72,6 +110,7 @@ app.post('/users/add', function(req, res){
 			if(err){
 				console.log(err);
 			}
+			console.log(response);
 			res.redirect('/');
 		});
 	}
@@ -82,6 +121,7 @@ app.delete('/users/delete/:id', function(req, res){
 		if(err){
 			console.log(err);
 		} else {
+			console.log(res);
 			res.redirect('/');
 		}
 	});
