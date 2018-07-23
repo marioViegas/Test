@@ -3,7 +3,7 @@ var bodyParser = require('body-parser');
 var path = require('path');
 var expressValidator = require('express-validator');
 var mongojs = require('mongojs');
-var db = mongojs('customerapp', ['users', 'user']);
+var db = mongojs('customerapp', ['users', 'user', 'access_token']);
 var ObjectId = mongojs.ObjectId;
 const Instagram = require('node-instagram').default;
 var app = express();
@@ -19,6 +19,7 @@ app.use(logger);*/
 const instagram = new Instagram({
   clientId: '13837ff160e0401cbb4642750dca8166',
   clientSecret: 'fd266d2a52164d06b60fdc2d99621725',
+  accessToken: db.access_token.access_token
 });
 
 //View Engine
@@ -66,18 +67,32 @@ app.get('/auth/instagram/callback', async (req, res) => {
   try {
     const data = await instagram.authorizeUser(req.query.code, redirectUri);
     // access_token in data.access_token
-		console.log(data.user);
-    res.json(data);
-		db.user.insert(data.user, function(err, response){
+		console.log(data);
+    res.redirect('/user');
+		db.user.insert(data, function(err, response){
 			if(err){
 				console.log(err);
 			}
 			console.log(response);
 			//res.redirect('/');
 		});
+
   } catch (err) {
     res.json(err);
   }
+});
+
+app.get('/user', function(req, res){
+  res.render('user');
+});
+
+app.get('/user_info', function(req, res){
+  // Get information about current user
+  instagram.get('users/self', (err, data) => {
+    console.log(data);
+    console.log(instagram);
+    res.json(data);
+  });
 });
 
 app.post('/users/add', function(req, res){
